@@ -26,8 +26,8 @@
     padding:7px 11px;border-radius:8px;font-size:12.5px;font-weight:500}
   .toolbar button:hover{background:rgba(255,255,255,.18)}
   .toolbar button.primary{background:var(--accent-2);border-color:var(--accent-2);color:#1b1206;font-weight:700}
-  .app{display:grid;grid-template-columns:400px 1fr;min-height:calc(100vh - 66px)}
-  @media(max-width:940px){.app{grid-template-columns:1fr}}
+  .app{display:grid;grid-template-columns:400px 1fr;height:calc(100vh - 66px)}
+  @media(max-width:940px){.app{grid-template-columns:1fr;height:auto}.builder,.output{overflow:visible}}
   .builder{padding:18px;border-right:1px solid var(--line);background:#fbfaf6;overflow:auto}
   .output{padding:22px;overflow:auto}
   .sec{margin-bottom:20px}
@@ -41,6 +41,7 @@
   .row{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:10px;margin-bottom:8px}
   .rowtop{display:flex;align-items:center;gap:6px;margin-bottom:7px}
   .rowtop input.lbl{flex:1;padding:6px 8px;border:1px solid var(--line);border-radius:7px}
+  .rowtop textarea.lbl{flex:1;padding:6px 8px;border:1px solid var(--line);border-radius:7px;resize:vertical;min-height:32px;line-height:1.3;font-size:13.5px}
   .mini{border:1px solid var(--line);background:#fff;border-radius:6px;width:26px;height:26px;display:inline-flex;
     align-items:center;justify-content:center;color:var(--ink-soft);font-size:12px;flex:0 0 auto}
   .mini:hover{background:var(--line-soft)}
@@ -146,6 +147,7 @@ function measure(str,fs){mctx.font=fs+'px Helvetica, Arial, sans-serif';return m
 function wrapLines(str,fs,maxw){const words=String(str||'').split(/\s+/).filter(Boolean);const lines=[];let cur='';
   words.forEach(w=>{const t=cur?cur+' '+w:w;if(measure(t,fs)>maxw&&cur){lines.push(cur);cur=w;}else cur=t;});
   if(cur)lines.push(cur);return lines.length?lines:[''];}
+function splitWrap(str,fs,maxw){const out=[];String(str==null?'':str).split('\n').forEach(seg=>{wrapLines(seg,fs,maxw).forEach(l=>out.push(l));});return out.length?out:[''];}
 function slaText(s){return (s.sla&&s.sla.n)?('SLA '+s.sla.n+' '+s.sla.unit):'';}
 
 /* builder */
@@ -194,7 +196,7 @@ function renderSteps(){const el=document.getElementById('stepList');
     return `<div class="row">
       <div class="rowtop">
         <span class="kindpill" style="background:${isDec?'#fdf1dd':'#eaf1f6'};color:${isDec?'#8a5a13':'#1f4e6b'}">${isDec?'decision':'activity'}</span>
-        <input class="lbl" value="${esc(s.label)}" placeholder="${isDec?'e.g. Approved?':'e.g. Review PR'}" oninput="setStep('${s.id}','label',this.value)">
+        <textarea class="lbl" rows="1" placeholder="${isDec?'e.g. Approved?':'e.g. Review PR'}" oninput="setStep('${s.id}','label',this.value)">${esc(s.label)}</textarea>
         <button class="mini" onclick="moveStep(${i},-1)">▲</button><button class="mini" onclick="moveStep(${i},1)">▼</button><button class="mini del" onclick="delStep('${s.id}')">✕</button>
       </div>
       <div class="grid2">
@@ -241,13 +243,13 @@ function laneCrossCenter(owner,G){let idx=actorIndex(owner);if(idx<0)idx=0;retur
 function sizeOf(n){
   if(n.shape==='start'||n.shape==='end')return {w:CIRC*2,h:CIRC*2,lines:[n.label],fs:11,lh:14};
   const fs=n.shape==='diamond'?13:14,padX=14,padY=10,lh=fs+4,maxTextW=n.shape==='diamond'?150:200;
-  const lines=wrapLines(n.label,fs,maxTextW);let tw=0;lines.forEach(l=>tw=Math.max(tw,measure(l,fs)));
+  const lines=splitWrap(n.label,fs,maxTextW);let tw=0;lines.forEach(l=>tw=Math.max(tw,measure(l,fs)));
   let w,h;
   if(n.shape==='diamond'){w=Math.max(96,tw+58);h=Math.max(62,lines.length*lh+34);}
   else{w=Math.max(72,Math.min(maxTextW+padX*2,tw+padX*2));h=lines.length*lh+padY*2;}
   if(n.mw)w=n.mw;if(n.mh)h=n.mh;return {w:Math.round(w),h:Math.round(h),lines,fs,lh};
 }
-function annoLines(n){const a=[];if(n.notes)wrapLines(n.notes,10.5,Math.max(n.w,90)).forEach(l=>a.push({t:l,sla:false}));if(n.sla)a.push({t:n.sla,sla:true});return a;}
+function annoLines(n){const a=[];if(n.notes)splitWrap(n.notes,10.5,Math.max(n.w,90)).forEach(l=>a.push({t:l,sla:false}));if(n.sla)a.push({t:n.sla,sla:true});return a;}
 function annoH(n){const a=annoLines(n);return a.length?a.length*13+6:0;}
 function buildNodes(){
   if(!model.steps.length)return [];
