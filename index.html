@@ -175,7 +175,7 @@ function renderActors(){const el=document.getElementById('actorList');
       <div class="rowtop" style="margin-bottom:0">
         <span class="clr"><span class="tiny">Fill</span>
           <input type="color" value="${a.color||'#ffffff'}" oninput="setActor('${a.id}','color',this.value)">
-          <button class="mini" title="No colour" onclick="setActor('${a.id}','color','')">auto</button></span>
+          <button class="mini" title="No colour" onclick="clearActorColor('${a.id}')">auto</button></span>
         <span class="clr" style="margin-left:auto"><span class="tiny">W</span>
           <input class="lh" type="number" min="60" step="2" value="${a.w||170}" oninput="setActor('${a.id}','w',+this.value)">
           <span class="tiny">H</span>
@@ -221,7 +221,8 @@ function renderSteps(){const el=document.getElementById('stepList');
 
 /* mutators */
 function addActor(){model.actors.push({id:nid(),name:'Actor '+(model.actors.length+1),color:'',w:170,h:86});renderActors();renderSteps();renderOutput();}
-function setActor(id,k,v){const a=model.actors.find(a=>a.id===id);if(a)a[k]=v;if(k==='color'||k==='name')renderActors();renderOutput();}
+function setActor(id,k,v){const a=model.actors.find(a=>a.id===id);if(a)a[k]=v;if(k==='name')renderSteps();renderOutput();}
+function clearActorColor(id){const a=model.actors.find(a=>a.id===id);if(a)a.color='';renderActors();renderOutput();}
 function delActor(id){model.actors=model.actors.filter(a=>a.id!==id);model.steps.forEach(s=>{if(s.owner===id)s.owner=model.actors[0]?.id||'';});renderActors();renderSteps();renderOutput();}
 function moveActor(i,d){const j=i+d;if(j<0||j>=model.actors.length)return;[model.actors[i],model.actors[j]]=[model.actors[j],model.actors[i]];renderActors();renderSteps();renderOutput();}
 function addStep(){if(!model.actors.length)addActor();model.steps.push({id:nid(),kind:'activity',label:'',owner:model.actors[0].id,notes:'',yes:'',no:'',w:null,h:null,sla:{n:'',unit:'days'}});renderSteps();renderOutput();}
