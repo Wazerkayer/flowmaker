@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flow Maker — Swimlane Process Mapper</title>
+<style>
+  :root{
+    --ink:#1b1e26; --ink-soft:#5b6271; --line:#e3e0d8; --line-soft:#efece5;
+    --paper:#f6f4ee; --card:#fff; --accent:#15485e; --accent-2:#b9802b;
+    --green:#3f9b54; --green-d:#2f7a40; --red:#c0392b; --red-soft:#fbecea;
+    --sans:Helvetica,"Helvetica Neue",Arial,sans-serif; --r:10px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:14.5px;line-height:1.5}
+  button{font-family:var(--sans);cursor:pointer}
+  input,select,textarea{font-family:var(--sans);font-size:13.5px;color:var(--ink)}
+  header.top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+    padding:16px 24px;background:var(--accent);color:#f3efe6;border-bottom:3px solid var(--accent-2)}
+  .brand{display:flex;align-items:baseline;gap:11px}
+  .brand h1{margin:0;font-size:21px;font-weight:700}
+  .brand .tag{font-size:11px;text-transform:uppercase;letter-spacing:0.18em;color:#9fc0cc}
+  .toolbar{display:flex;gap:7px;flex-wrap:wrap}
+  .toolbar button{border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#f3efe6;
+    padding:7px 11px;border-radius:8px;font-size:12.5px;font-weight:500}
+  .toolbar button:hover{background:rgba(255,255,255,.18)}
+  .toolbar button.primary{background:var(--accent-2);border-color:var(--accent-2);color:#1b1206;font-weight:700}
+  .app{display:grid;grid-template-columns:400px 1fr;min-height:calc(100vh - 66px)}
+  @media(max-width:940px){.app{grid-template-columns:1fr}}
+  .builder{padding:18px;border-right:1px solid var(--line);background:#fbfaf6;overflow:auto}
+  .output{padding:22px;overflow:auto}
+  .sec{margin-bottom:20px}
+  .sec>.h{display:flex;align-items:center;gap:8px;margin:0 0 9px}
+  .sec>.h .num{font-size:11px;background:var(--ink);color:#fff;border-radius:5px;padding:2px 7px}
+  .sec>.h h2{margin:0;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink-soft)}
+  .field{margin-bottom:8px}
+  .field label{display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:3px}
+  .field input,.field select,.field textarea{width:100%;padding:8px 9px;border:1px solid var(--line);border-radius:8px;background:#fff}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
+  .row{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:10px;margin-bottom:8px}
+  .rowtop{display:flex;align-items:center;gap:6px;margin-bottom:7px}
+  .rowtop input.lbl{flex:1;padding:6px 8px;border:1px solid var(--line);border-radius:7px}
+  .mini{border:1px solid var(--line);background:#fff;border-radius:6px;width:26px;height:26px;display:inline-flex;
+    align-items:center;justify-content:center;color:var(--ink-soft);font-size:12px;flex:0 0 auto}
+  .mini:hover{background:var(--line-soft)}
+  .mini.del:hover{background:var(--red-soft);color:var(--red);border-color:#e6bdb6}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .grid3{display:grid;grid-template-columns:auto 64px 64px;gap:6px;align-items:center}
+  .gridsla{display:grid;grid-template-columns:auto 66px 92px;gap:6px;align-items:center}
+  .row select,.row textarea,.row input.num{width:100%;padding:7px 8px;border:1px solid var(--line);border-radius:7px;background:#fff}
+  .kindpill{font-size:9.5px;text-transform:uppercase;letter-spacing:.1em;padding:2px 6px;border-radius:5px;flex:0 0 auto}
+  .add{width:100%;border:1px dashed var(--accent);background:#fff;color:var(--accent);padding:9px;border-radius:9px;font-weight:600;font-size:12.5px}
+  .add:hover{background:#eef4f6}
+  .clr{display:flex;align-items:center;gap:4px;flex:0 0 auto}
+  .clr input[type=color]{width:26px;height:26px;border:1px solid var(--line);border-radius:6px;background:#fff;padding:1px}
+  .lh{width:50px;flex:0 0 auto;text-align:center;padding:6px 4px;border:1px solid var(--line);border-radius:7px}
+  .tiny{font-size:11px;color:var(--ink-soft)}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:18px}
+  .panel h3{margin:0 0 4px;font-size:15.5px;font-weight:700}
+  .panel .sub{font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.12em;margin-bottom:12px}
+  .summary{display:flex;gap:20px;flex-wrap:wrap}
+  .summary div span{display:block;font-size:10.5px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.1em}
+  .summary div strong{font-weight:600}
+  .diagram-wrap{overflow:auto;border:1px solid var(--line);border-radius:12px;background:#fff;max-height:74vh}
+  .diagram-wrap svg{display:block}
+  .node{cursor:grab} .node:active{cursor:grabbing} .connh{cursor:move} .connlab{cursor:move;user-select:none}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+  th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-soft);font-weight:600;border-bottom:1px solid var(--line)}
+  .badge{font-size:10px;padding:1px 7px;border-radius:5px;border:1px solid var(--line);color:var(--ink-soft)}
+  ul.clean{list-style:none;padding-left:0;margin:0}
+  .review li{margin-bottom:6px}
+  .review .warn{color:#8a4b15} .review .warn::before{content:"▲ ";color:var(--accent-2)}
+  .review .ok::before{content:"✓ ";color:var(--green-d)}
+  .review .chk{color:var(--ink-soft)} .review .chk::before{content:"□ "}
+  .legend{display:flex;gap:15px;flex-wrap:wrap;font-size:12px;color:var(--ink-soft);padding:9px 4px 2px;align-items:center}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .lz{width:22px;border-top:2px solid #333} .lzr{width:22px;border-top:2px dashed var(--red)}
+  .dot{width:12px;height:12px;border-radius:50%}
+  .empty{color:var(--ink-soft);font-size:13px;padding:8px 2px}
+  .hintbox{background:#eef4f6;border:1px solid #cfe0e6;border-radius:9px;padding:9px 11px;font-size:12px;color:#2c4a55;margin-bottom:8px}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><h1>Flow Maker</h1><span class="tag">Swimlane Process Mapper</span></div>
+  <div class="toolbar">
+    <button onclick="loadExample()">Load example</button>
+    <button onclick="newDoc()">New</button>
+    <button onclick="resetLayout()">Reset layout</button>
+    <button onclick="importJSON()">Import</button>
+    <button onclick="exportJSON()">Save .json</button>
+    <button onclick="downloadSVG()">SVG</button>
+    <button onclick="downloadPNG()">PNG</button>
+    <button class="primary" onclick="window.print()">Print</button>
+  </div>
+</header>
+
+<div class="app">
+  <div class="builder">
+    <div class="sec">
+      <div class="h"><span class="num">1</span><h2>Process</h2></div>
+      <div class="field"><label>Process name</label><input id="p_name" placeholder="e.g. RFQ to Purchase Order"></div>
+      <div class="field"><label>Trigger</label><input id="p_trigger" placeholder="What starts the process"></div>
+      <div class="field"><label>End state</label><input id="p_end" placeholder="When it's done"></div>
+    </div>
+    <div class="sec">
+      <div class="h"><span class="num">2</span><h2>Actors (lanes)</h2></div>
+      <div class="hintbox"><b>Fill</b> = your own colour (or “auto” = plain). <b>H</b> = lane size when horizontal, <b>W</b> = lane size when vertical.</div>
+      <div id="actorList"></div>
+      <button class="add" onclick="addActor()">+ Add actor</button>
+    </div>
+    <div class="sec">
+      <div class="h"><span class="num">3</span><h2>Steps</h2></div>
+      <div class="hintbox">Box auto-fits text (or fix it with W/H). Notes &amp; SLA show under the box. Set <b>SLA</b> with a unit per step.</div>
+      <div id="stepList"></div>
+      <button class="add" onclick="addStep()">+ Add step</button>
+    </div>
+    <div class="sec">
+      <div class="h"><span class="num">4</span><h2>Diagram settings</h2></div>
+      <div class="field"><label>Orientation</label><select id="s_orient"><option value="horizontal">Horizontal (lanes = rows, flow →)</option><option value="vertical">Vertical (lanes = columns, flow ↓)</option></select></div>
+      <div class="field"><label>Lane label band (px)</label><input id="s_labelw" class="num" type="number" min="20" max="160" step="2"></div>
+      <div class="hintbox">Drag any <b>box</b> to reposition; drag the small circle on a <b>line</b> to bend it. Boxes stay inside their lane and arrows stay inside the canvas. Use <b>Reset layout</b> to clear.</div>
+    </div>
+  </div>
+  <div class="output" id="output"></div>
+</div>
+<input type="file" id="fileInput" accept="application/json" style="display:none">
+
+<script>
+let uid=1; const nid=()=>'n'+(uid++);
+let model=blank();
+let drag=null, LAYOUT={O:'horizontal',W:0,H:0};
+const mctx=document.createElement('canvas').getContext('2d');
+const TOP=26, GAP=46, CIRC=23;
+
+function blank(){return {name:'',trigger:'',endState:'',settings:{labelW:54,orientation:'horizontal'},actors:[],steps:[],pos:{},conn:{}};}
+function orient(){return model.settings.orientation==='vertical'?'vertical':'horizontal';}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+function r1(v){return Math.round(v*10)/10;}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+/* measuring */
+function measure(str,fs){mctx.font=fs+'px Helvetica, Arial, sans-serif';return mctx.measureText(String(str||'')).width;}
+function wrapLines(str,fs,maxw){const words=String(str||'').split(/\s+/).filter(Boolean);const lines=[];let cur='';
+  words.forEach(w=>{const t=cur?cur+' '+w:w;if(measure(t,fs)>maxw&&cur){lines.push(cur);cur=w;}else cur=t;});
+  if(cur)lines.push(cur);return lines.length?lines:[''];}
+function slaText(s){return (s.sla&&s.sla.n)?('SLA '+s.sla.n+' '+s.sla.unit):'';}
+
+/* builder */
+function bindMeta(){
+  p_name.value=model.name;p_trigger.value=model.trigger;p_end.value=model.endState;
+  p_name.oninput=e=>{model.name=e.target.value;renderOutput();};
+  p_trigger.oninput=e=>{model.trigger=e.target.value;renderOutput();};
+  p_end.oninput=e=>{model.endState=e.target.value;renderOutput();};
+  s_labelw.value=model.settings.labelW;
+  s_labelw.oninput=e=>{model.settings.labelW=clamp(+e.target.value||54,20,160);renderOutput();};
+  s_orient.value=model.settings.orientation;
+  s_orient.onchange=e=>{model.settings.orientation=e.target.value;model.pos={};model.conn={};renderOutput();};
+}
+function actorName(id){const a=model.actors.find(a=>a.id===id);return a?a.name:'';}
+function actorIndex(id){return model.actors.findIndex(a=>a.id===id);}
+function actorColor(id){const a=model.actors.find(a=>a.id===id);return a&&a.color?a.color:'';}
+
+function renderActors(){const el=document.getElementById('actorList');
+  if(!model.actors.length){el.innerHTML='<div class="empty">No actors yet.</div>';return;}
+  el.innerHTML=model.actors.map((a,i)=>`<div class="row">
+      <div class="rowtop">
+        <input class="lbl" value="${esc(a.name)}" placeholder="Actor name" oninput="setActor('${a.id}','name',this.value)">
+        <button class="mini" onclick="moveActor(${i},-1)">▲</button>
+        <button class="mini" onclick="moveActor(${i},1)">▼</button>
+        <button class="mini del" onclick="delActor('${a.id}')">✕</button>
+      </div>
+      <div class="rowtop" style="margin-bottom:0">
+        <span class="clr"><span class="tiny">Fill</span>
+          <input type="color" value="${a.color||'#ffffff'}" oninput="setActor('${a.id}','color',this.value)">
+          <button class="mini" title="No colour" onclick="clearActorColor('${a.id}')">auto</button></span>
+        <span class="clr" style="margin-left:auto"><span class="tiny">W</span>
+          <input class="lh" type="number" min="60" step="2" value="${a.w||170}" oninput="setActor('${a.id}','w',+this.value)">
+          <span class="tiny">H</span>
+          <input class="lh" type="number" min="48" step="2" value="${a.h||86}" oninput="setActor('${a.id}','h',+this.value)"></span>
+      </div></div>`).join('');
+}
+function renderSteps(){const el=document.getElementById('stepList');
+  if(!model.actors.length){el.innerHTML='<div class="empty">Add an actor first.</div>';return;}
+  if(!model.steps.length){el.innerHTML='<div class="empty">No steps yet.</div>';return;}
+  const opts=sel=>model.actors.map(a=>`<option value="${a.id}" ${a.id===sel?'selected':''}>${esc(a.name)}</option>`).join('');
+  const tgt=(self,sel)=>{let o='<option value="">(next step)</option>';
+    o+=model.steps.filter(s=>s.id!==self).map(s=>`<option value="${s.id}" ${s.id===sel?'selected':''}>${esc(s.label||'(step)')}</option>`).join('');
+    o+=`<option value="__end__" ${sel==='__end__'?'selected':''}>END</option>`;return o;};
+  const units=u=>['days','weeks','months'].map(x=>`<option value="${x}" ${x===u?'selected':''}>${x}</option>`).join('');
+  el.innerHTML=model.steps.map((s,i)=>{const isDec=s.kind==='decision';const sla=s.sla||{n:'',unit:'days'};
+    return `<div class="row">
+      <div class="rowtop">
+        <span class="kindpill" style="background:${isDec?'#fdf1dd':'#eaf1f6'};color:${isDec?'#8a5a13':'#1f4e6b'}">${isDec?'decision':'activity'}</span>
+        <input class="lbl" value="${esc(s.label)}" placeholder="${isDec?'e.g. Approved?':'e.g. Review PR'}" oninput="setStep('${s.id}','label',this.value)">
+        <button class="mini" onclick="moveStep(${i},-1)">▲</button><button class="mini" onclick="moveStep(${i},1)">▼</button><button class="mini del" onclick="delStep('${s.id}')">✕</button>
+      </div>
+      <div class="grid2">
+        <select onchange="setStep('${s.id}','kind',this.value)"><option value="activity" ${!isDec?'selected':''}>Activity</option><option value="decision" ${isDec?'selected':''}>Decision</option></select>
+        <select onchange="setStep('${s.id}','owner',this.value)">${opts(s.owner)}</select>
+      </div>
+      ${isDec?`<div class="grid2" style="margin-top:6px">
+          <select onchange="setStep('${s.id}','yes',this.value)"><optgroup label="YES →">${tgt(s.id,s.yes)}</optgroup></select>
+          <select onchange="setStep('${s.id}','no',this.value)"><optgroup label="NO ↩">${tgt(s.id,s.no)}</optgroup></select>
+        </div>`
+      :`<textarea style="margin-top:6px" placeholder="Notes (under the box)…" oninput="setStep('${s.id}','notes',this.value)">${esc(s.notes||'')}</textarea>`}
+      <div class="gridsla" style="margin-top:6px">
+        <span class="tiny">SLA →</span>
+        <input class="num" type="number" min="0" placeholder="—" value="${sla.n}" oninput="setSla('${s.id}','n',this.value)">
+        <select onchange="setSla('${s.id}','unit',this.value)">${units(sla.unit)}</select>
+      </div>
+      <div class="grid3" style="margin-top:6px">
+        <span class="tiny">Manual size →</span>
+        <input class="num" type="number" placeholder="W auto" value="${s.w||''}" oninput="setStep('${s.id}','w',this.value?+this.value:null)">
+        <input class="num" type="number" placeholder="H auto" value="${s.h||''}" oninput="setStep('${s.id}','h',this.value?+this.value:null)">
+      </div></div>`;
+  }).join('');
+}
+
+/* mutators */
+function addActor(){model.actors.push({id:nid(),name:'Actor '+(model.actors.length+1),color:'',w:170,h:86});renderActors();renderSteps();renderOutput();}
+function setActor(id,k,v){const a=model.actors.find(a=>a.id===id);if(a)a[k]=v;if(k==='name')renderSteps();renderOutput();}
+function clearActorColor(id){const a=model.actors.find(a=>a.id===id);if(a)a.color='';renderActors();renderOutput();}
+function delActor(id){model.actors=model.actors.filter(a=>a.id!==id);model.steps.forEach(s=>{if(s.owner===id)s.owner=model.actors[0]?.id||'';});renderActors();renderSteps();renderOutput();}
+function moveActor(i,d){const j=i+d;if(j<0||j>=model.actors.length)return;[model.actors[i],model.actors[j]]=[model.actors[j],model.actors[i]];renderActors();renderSteps();renderOutput();}
+function addStep(){if(!model.actors.length)addActor();model.steps.push({id:nid(),kind:'activity',label:'',owner:model.actors[0].id,notes:'',yes:'',no:'',w:null,h:null,sla:{n:'',unit:'days'}});renderSteps();renderOutput();}
+function setStep(id,k,v){const s=model.steps.find(s=>s.id===id);if(!s)return;s[k]=v;if(k==='kind')renderSteps();renderOutput();}
+function setSla(id,k,v){const s=model.steps.find(s=>s.id===id);if(!s)return;s.sla=s.sla||{n:'',unit:'days'};s.sla[k]=k==='n'?(v===''?'':+v):v;renderOutput();}
+function delStep(id){model.steps=model.steps.filter(s=>s.id!==id);model.steps.forEach(s=>{if(s.yes===id)s.yes='';if(s.no===id)s.no='';});delete model.pos[id];renderSteps();renderOutput();}
+function moveStep(i,d){const j=i+d;if(j<0||j>=model.steps.length)return;[model.steps[i],model.steps[j]]=[model.steps[j],model.steps[i]];renderSteps();renderOutput();}
+function resetLayout(){model.pos={};model.conn={};renderOutput();}
+
+/* layout */
+function laneGeom(){const O=orient();const band=model.settings.labelW;
+  const sizes=model.actors.map(a=>O==='vertical'?(a.w||170):(a.h||86));
+  const crossStart=O==='vertical'?10:TOP;const starts=[];let s=crossStart;sizes.forEach(z=>{starts.push(s);s+=z;});
+  return {O,band,sizes,starts,crossStart,crossEnd:s};}
+function laneCrossCenter(owner,G){let idx=actorIndex(owner);if(idx<0)idx=0;return G.starts[idx]+G.sizes[idx]/2;}
+function sizeOf(n){
+  if(n.shape==='start'||n.shape==='end')return {w:CIRC*2,h:CIRC*2,lines:[n.label],fs:11,lh:14};
+  const fs=n.shape==='diamond'?13:14,padX=14,padY=10,lh=fs+4,maxTextW=n.shape==='diamond'?150:200;
+  const lines=wrapLines(n.label,fs,maxTextW);let tw=0;lines.forEach(l=>tw=Math.max(tw,measure(l,fs)));
+  let w,h;
+  if(n.shape==='diamond'){w=Math.max(96,tw+58);h=Math.max(62,lines.length*lh+34);}
+  else{w=Math.max(72,Math.min(maxTextW+padX*2,tw+padX*2));h=lines.length*lh+padY*2;}
+  if(n.mw)w=n.mw;if(n.mh)h=n.mh;return {w:Math.round(w),h:Math.round(h),lines,fs,lh};
+}
+function annoLines(n){const a=[];if(n.notes)wrapLines(n.notes,10.5,Math.max(n.w,90)).forEach(l=>a.push({t:l,sla:false}));if(n.sla)a.push({t:n.sla,sla:true});return a;}
+function annoH(n){const a=annoLines(n);return a.length?a.length*13+6:0;}
+function buildNodes(){
+  if(!model.steps.length)return [];
+  const O=orient();const f=model.steps[0].owner,l=model.steps[model.steps.length-1].owner;
+  const nodes=[{id:'__start__',shape:'start',label:'START',owner:f}];
+  model.steps.forEach(s=>nodes.push({id:s.id,shape:s.kind==='decision'?'diamond':'rect',label:s.label||'(step)',owner:s.owner,notes:s.notes,kind:s.kind,yes:s.yes,no:s.no,mw:s.w,mh:s.h,sla:slaText(s)}));
+  nodes.push({id:'__end__',shape:'end',label:'END',owner:l});
+  const G=laneGeom();let cursor=G.band+18;
+  nodes.forEach((n,i)=>{const sz=sizeOf(n);n.w=sz.w;n.h=sz.h;n.lines=sz.lines;n.fs=sz.fs;n.lh=sz.lh;
+    const ah=annoH(n);const cross=laneCrossCenter(n.owner,G);let dcx,dcy,mainSize;
+    if(O==='vertical'){dcy=cursor+n.h/2;dcx=cross;mainSize=n.h+ah;}
+    else{dcx=cursor+n.w/2;dcy=cross;mainSize=n.w;}
+    cursor+=mainSize+GAP;
+    const p=model.pos[n.id];n.cx=Math.round(p?p.x:dcx);n.cy=Math.round(p?p.y:dcy);n.col=i;
+  });
+  return nodes;
+}
+function edges(n){const ah=annoH(n);
+  if(n.shape==='diamond')return {l:{x:n.cx-n.w/2,y:n.cy},r:{x:n.cx+n.w/2,y:n.cy},t:{x:n.cx,y:n.cy-n.h/2},b:{x:n.cx,y:n.cy+n.h/2+ah}};
+  if(n.shape==='rect')return {l:{x:n.cx-n.w/2,y:n.cy},r:{x:n.cx+n.w/2,y:n.cy},t:{x:n.cx,y:n.cy-n.h/2},b:{x:n.cx,y:n.cy+n.h/2+ah}};
+  return {l:{x:n.cx-CIRC,y:n.cy},r:{x:n.cx+CIRC,y:n.cy},t:{x:n.cx,y:n.cy-CIRC},b:{x:n.cx,y:n.cy+CIRC}};
+}
+function buildConns(nodes){const byId={};nodes.forEach(n=>byId[n.id]=n);const c=[];
+  nodes.forEach((n,i)=>{
+    if(n.shape==='start'){if(nodes[i+1])c.push({a:n,b:nodes[i+1],kind:'solid'});}
+    else if(n.shape==='rect'){if(nodes[i+1])c.push({a:n,b:nodes[i+1],kind:'solid'});}
+    else if(n.shape==='diamond'){
+      const y=n.yes==='__end__'?byId['__end__']:(n.yes&&byId[n.yes])?byId[n.yes]:nodes[i+1];
+      if(y)c.push({a:n,b:y,kind:'solid',label:'Yes'});
+      const no=n.no==='__end__'?byId['__end__']:(n.no&&byId[n.no])?byId[n.no]:null;
+      if(no)c.push({a:n,b:no,kind:'loop',label:'No'});}
+  });return c;}
+function connId(a,b){return a.id+'|'+b.id;}
+function nodeFoot(n){const ah=annoH(n);if(n.shape==='start'||n.shape==='end')return {l:n.cx-CIRC,r:n.cx+CIRC,t:n.cy-CIRC,b:n.cy+CIRC};return {l:n.cx-n.w/2,r:n.cx+n.w/2,t:n.cy-n.h/2,b:n.cy+n.h/2+ah};}
+function snapPerim(P,f){const x=clamp(P.x,f.l,f.r),y=clamp(P.y,f.t,f.b);const dl=x-f.l,dr=f.r-x,dt=y-f.t,db=f.b-y;const mn=Math.min(dl,dr,dt,db);if(mn===dl)return {x:f.l,y};if(mn===dr)return {x:f.r,y};if(mn===dt)return {x,y:f.t};return {x,y:f.b};}
+function connEnds(c,O,ov){const A=edges(c.a),B=edges(c.b);const isLoop=c.kind==='loop';let Sdef,Edef,tpl,bendAxis;
+  if(!isLoop&&O==='horizontal'){Sdef=A.r;Edef=B.l;tpl='H';bendAxis='x';}
+  else if(!isLoop&&O==='vertical'){Sdef=A.b;Edef=B.t;tpl='V';bendAxis='y';}
+  else if(isLoop&&O==='horizontal'){Sdef=A.b;Edef=B.b;tpl='V';bendAxis='y';}
+  else{Sdef=A.r;Edef=B.r;tpl='H';bendAxis='x';}
+  const S=ov.s?{x:c.a.cx+ov.s.dx,y:c.a.cy+ov.s.dy}:Sdef;
+  const E=ov.e?{x:c.b.cx+ov.e.dx,y:c.b.cy+ov.e.dy}:Edef;
+  return {A,B,S,E,tpl,bendAxis,isLoop};}
+function connParts(nodes){const conns=buildConns(nodes);let k=0,p='',lab='',h='';const O=LAYOUT.O;
+  conns.forEach(c=>{const id=connId(c.a,c.b);const ov=model.conn[id]||{};const en=connEnds(c,O,ov);
+    const S=en.S,E=en.E,tpl=en.tpl,bendAxis=en.bendAxis,isLoop=en.isLoop;
+    let bendDef;if(isLoop)bendDef=LAYOUT.channelBase+k*15;else bendDef=tpl==='H'?(S.x+E.x)/2:(S.y+E.y)/2;
+    if(isLoop)k++;const bend=ov.bend!=null?ov.bend:r1(bendDef);
+    let d,hbx,hby;
+    if(tpl==='H'){d=`M${r1(S.x)} ${r1(S.y)} H${bend} V${r1(E.y)} H${r1(E.x)}`;hbx=bend;hby=r1((S.y+E.y)/2);}
+    else{d=`M${r1(S.x)} ${r1(S.y)} V${bend} H${r1(E.x)} V${r1(E.y)}`;hbx=r1((S.x+E.x)/2);hby=bend;}
+    const st=isLoop?'#c0392b':'#333',mk=isLoop?'arR':'ar',dash=isLoop?' stroke-dasharray="6 5"':'';
+    p+=`<path d="${d}" fill="none" stroke="${st}" stroke-width="1.8"${dash} marker-end="url(#${mk})"/>`;
+    if(c.label){const dl=ov.lab||(tpl==='H'?{dx:8,dy:-7}:{dx:8,dy:14});
+      lab+=`<text class="connlab" data-conn="${id}" x="${r1(S.x+dl.dx)}" y="${r1(S.y+dl.dy)}" font-size="12" font-weight="600" fill="${isLoop?'#c0392b':'#2f6fb0'}">${c.label}</text>`;}
+    h+=`<circle class="connh" data-conn="${id}" data-role="s" cx="${r1(S.x)}" cy="${r1(S.y)}" r="4.5" fill="#ffe3b8" stroke="${st}" stroke-width="1.4"/>`;
+    h+=`<circle class="connh" data-conn="${id}" data-role="e" cx="${r1(E.x)}" cy="${r1(E.y)}" r="4.5" fill="#ffe3b8" stroke="${st}" stroke-width="1.4"/>`;
+    h+=`<circle class="connh" data-conn="${id}" data-role="b" data-axis="${bendAxis}" cx="${hbx}" cy="${hby}" r="5" fill="#fff" stroke="${st}" stroke-width="1.5" opacity="0.9"/>`;
+  });return {p,lab,h};}
+function textBlock(lines,fs,lh){const off=-(lines.length-1)*lh/2;return lines.map((l,i)=>`<text x="0" y="${r1(off+i*lh)}" text-anchor="middle" dominant-baseline="central" font-size="${fs}" fill="#1b1e26">${esc(l)}</text>`).join('');}
+
+function diagramSVG(forExport){
+  const nodes=buildNodes();if(!nodes.length)return '';
+  const O=orient();const G=laneGeom();
+  let maxX=G.band+200,maxY=G.crossEnd;
+  nodes.forEach(n=>{const e=edges(n);maxX=Math.max(maxX,n.cx+n.w/2);maxY=Math.max(maxY,e.b.y);});
+  const nLoops=buildConns(nodes).filter(c=>c.kind==='loop').length;
+  let W,H,channelBase;
+  if(O==='horizontal'){channelBase=Math.max(G.crossEnd,maxY)+12;H=Math.round(channelBase+nLoops*15+16);W=Math.round(maxX+30);}
+  else{const maxR=Math.max(maxX,G.crossEnd);channelBase=maxR+12;W=Math.round(channelBase+nLoops*15+16);H=Math.round(maxY+24);}
+  LAYOUT={O,W,H,band:G.band,crossStart:G.crossStart,crossEnd:G.crossEnd,channelBase};
+  const LB=G.band;
+  let s=`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="Helvetica, Arial, sans-serif">`;
+  s+=`<defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9" fill="none" stroke="#333" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker>
+    <marker id="arR" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9" fill="none" stroke="#c0392b" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker>
+  </defs><rect x="0" y="0" width="${W}" height="${H}" fill="#fff"/>`;
+  // lanes
+  let lg='';
+  if(O==='horizontal'){
+    model.actors.forEach((a,i)=>{const y=G.starts[i],hh=G.sizes[i],fill=a.color||'';
+      lg+=`<rect x="${LB}" y="${y}" width="${W-LB-10}" height="${hh}" fill="${fill||'#ffffff'}" opacity="${fill?0.05:1}"/>`;
+      lg+=`<rect x="8" y="${y}" width="${LB-8}" height="${hh}" fill="${fill||'#f2efe8'}" stroke="#d8d3c8" stroke-width="1"/>`;
+      lg+=`<text transform="rotate(-90 ${8+(LB-8)/2} ${y+hh/2})" x="${8+(LB-8)/2}" y="${y+hh/2}" text-anchor="middle" dominant-baseline="central" font-size="12.5" font-weight="600" fill="${fill?'#fff':'#3a3a3a'}">${esc(a.name)}</text>`;
+      lg+=`<line x1="${LB}" y1="${y}" x2="${W-10}" y2="${y}" stroke="#e6e2d8" stroke-width="1"/>`;});
+    lg+=`<line x1="${LB}" y1="${G.crossEnd}" x2="${W-10}" y2="${G.crossEnd}" stroke="#e6e2d8" stroke-width="1"/>`;
+    lg+=`<rect x="8" y="${TOP}" width="${W-18}" height="${G.crossEnd-TOP}" fill="none" stroke="#cfcabd" stroke-width="1.1"/>`;
+  }else{
+    const bodyTop=LB,bodyBot=H-10;
+    model.actors.forEach((a,i)=>{const x=G.starts[i],ww=G.sizes[i],fill=a.color||'';
+      lg+=`<rect x="${x}" y="${bodyTop}" width="${ww}" height="${bodyBot-bodyTop}" fill="${fill||'#ffffff'}" opacity="${fill?0.05:1}"/>`;
+      lg+=`<rect x="${x}" y="6" width="${ww}" height="${LB-6}" fill="${fill||'#f2efe8'}" stroke="#d8d3c8" stroke-width="1"/>`;
+      lg+=`<text x="${x+ww/2}" y="${6+(LB-6)/2}" text-anchor="middle" dominant-baseline="central" font-size="12.5" font-weight="600" fill="${fill?'#fff':'#3a3a3a'}">${esc(a.name)}</text>`;
+      lg+=`<line x1="${x}" y1="${bodyTop}" x2="${x}" y2="${bodyBot}" stroke="#e6e2d8" stroke-width="1"/>`;});
+    lg+=`<line x1="${G.crossEnd}" y1="${bodyTop}" x2="${G.crossEnd}" y2="${bodyBot}" stroke="#e6e2d8" stroke-width="1"/>`;
+    lg+=`<rect x="${G.crossStart}" y="6" width="${G.crossEnd-G.crossStart}" height="${bodyBot-6}" fill="none" stroke="#cfcabd" stroke-width="1.1"/>`;
+  }
+  const cp=connParts(nodes);
+  s+=`<g id="lanes">${lg}</g><g id="conns">${cp.p}</g>`;
+  // nodes
+  let ng='';
+  nodes.forEach(n=>{const bc=actorColor(n.owner)||'#444';let inner='';
+    if(n.shape==='start'||n.shape==='end'){const isS=n.shape==='start';
+      inner=`<circle cx="0" cy="0" r="${CIRC}" fill="${isS?'#dff0e1':'#fbe2e0'}" stroke="${isS?'#3f9b54':'#c0392b'}" stroke-width="2"/><text x="0" y="0" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="600" fill="${isS?'#2f7a40':'#a3302a'}">${n.label}</text>`;
+    }else if(n.shape==='diamond'){inner=`<polygon points="${-n.w/2},0 0,${-n.h/2} ${n.w/2},0 0,${n.h/2}" fill="#fff" stroke="${bc}" stroke-width="2"/>`+textBlock(n.lines,n.fs,n.lh);}
+    else{inner=`<rect x="${-n.w/2}" y="${-n.h/2}" width="${n.w}" height="${n.h}" rx="4" fill="#fff" stroke="${bc}" stroke-width="2"/>`+textBlock(n.lines,n.fs,n.lh);}
+    const al=annoLines(n);if(al.length){let ay=n.h/2+12;al.forEach(a=>{inner+=`<text x="0" y="${r1(ay)}" text-anchor="middle" dominant-baseline="central" font-size="10.5" font-style="italic" fill="#1b1e26" fill-opacity="${a.sla?0.75:0.55}">${esc(a.t)}</text>`;ay+=13;});}
+    ng+=`<g class="node" data-id="${n.id}" transform="translate(${n.cx},${n.cy})">${inner}</g>`;});
+  s+=`<g id="nodes">${ng}</g><g id="labels">${cp.lab}</g>`;
+  if(!forExport)s+=`<g id="handles">${cp.h}</g>`;
+  s+=`</svg>`;
+  return s;
+}
+
+/* drag */
+function svgPoint(svg,evt){const p=svg.createSVGPoint();p.x=evt.clientX;p.y=evt.clientY;return p.matrixTransform(svg.getScreenCTM().inverse());}
+function attachDrag(){const svg=document.querySelector('#diagram svg');if(!svg)return;
+  svg.querySelectorAll('.node').forEach(g=>{g.addEventListener('pointerdown',e=>{e.preventDefault();
+    const id=g.getAttribute('data-id');const n=buildNodes().find(x=>x.id===id);if(!n)return;
+    const p=svgPoint(svg,e);const m=g.transform.baseVal.consolidate().matrix;
+    drag={type:'node',id,g,svg,offx:m.e-p.x,offy:m.f-p.y,hw:n.w/2,hh:n.h/2,ah:annoH(n)};
+    try{g.setPointerCapture(e.pointerId);}catch(_){}}); });
+  bindHandles(svg);
+}
+window.addEventListener('pointermove',e=>{if(!drag)return;const p=svgPoint(drag.svg,e);
+  if(drag.type==='node'){let x=p.x+drag.offx,y=p.y+drag.offy;const L=LAYOUT;
+    if(L.O==='horizontal'){const lo=L.crossStart+drag.hh+2,hi=L.crossEnd-drag.hh-2;y=hi>lo?clamp(y,lo,hi):(L.crossStart+L.crossEnd)/2;
+      x=clamp(x,L.band+drag.hw+4,L.W-drag.hw-8);}
+    else{const lo=L.crossStart+drag.hw+2,hi=L.crossEnd-drag.hw-2;x=hi>lo?clamp(x,lo,hi):(L.crossStart+L.crossEnd)/2;
+      y=clamp(y,L.band+drag.hh+4,L.H-drag.hh-drag.ah-8);}
+    x=Math.round(x);y=Math.round(y);model.pos[drag.id]={x,y};drag.g.setAttribute('transform',`translate(${x},${y})`);
+    repaintConns(drag.svg);
+  }else{const nodes=buildNodes();
+    if(drag.role==='lab'){const c=buildConns(nodes).find(cc=>connId(cc.a,cc.b)===drag.id);if(c){const en=connEnds(c,LAYOUT.O,model.conn[drag.id]||{});(model.conn[drag.id]=model.conn[drag.id]||{}).lab={dx:Math.round(p.x-en.S.x),dy:Math.round(p.y-en.S.y)};}}
+    else if(drag.role==='b'){const v=drag.axis==='x'?clamp(p.x,6,LAYOUT.W-6):clamp(p.y,6,LAYOUT.H-6);(model.conn[drag.id]=model.conn[drag.id]||{}).bend=Math.round(v);}
+    else{const parts=drag.id.split('|');const nid2=drag.role==='s'?parts[0]:parts[1];const node=nodes.find(n=>n.id===nid2);
+      if(node){const f=nodeFoot(node);const sp=snapPerim(p,f);(model.conn[drag.id]=model.conn[drag.id]||{})[drag.role]={dx:Math.round(sp.x-node.cx),dy:Math.round(sp.y-node.cy)};}}
+    repaintConns(drag.svg);}
+});
+window.addEventListener('pointerup',()=>{if(drag){drag=null;renderOutput();}});
+function repaintConns(svg){const cp=connParts(buildNodes());svg.querySelector('#conns').innerHTML=cp.p;svg.querySelector('#labels').innerHTML=cp.lab;svg.querySelector('#handles').innerHTML=cp.h;bindHandles(svg);}
+function bindHandles(svg){
+  svg.querySelectorAll('#handles .connh').forEach(h=>{h.onpointerdown=e=>{e.preventDefault();e.stopPropagation();drag={type:'conn',id:h.getAttribute('data-conn'),role:h.getAttribute('data-role'),axis:h.getAttribute('data-axis'),svg};};});
+  svg.querySelectorAll('#labels .connlab').forEach(t=>{t.onpointerdown=e=>{e.preventDefault();e.stopPropagation();drag={type:'conn',id:t.getAttribute('data-conn'),role:'lab',svg};};});
+}
+
+/* output */
+function renderOutput(){const out=document.getElementById('output');const has=model.steps.length>0&&model.actors.length>0;
+  let h=`<div class="panel"><h3>${esc(model.name||'Untitled process')}</h3><div class="sub">Process summary</div>
+    <div class="summary"><div><span>Trigger</span><strong>${esc(model.trigger||'—')}</strong></div>
+      <div><span>End state</span><strong>${esc(model.endState||'—')}</strong></div>
+      <div><span>Actors</span><strong>${model.actors.length}</strong></div><div><span>Steps</span><strong>${model.steps.length}</strong></div></div></div>`;
+  h+=`<div class="panel"><h3>Swimlane diagram</h3><div class="sub">${orient()==='vertical'?'Top → down':'Left → right'} · drag boxes & line handles</div>`;
+  if(has){h+=`<div class="diagram-wrap" id="diagram">${diagramSVG()}</div>
+    <div class="legend"><span><span class="dot" style="background:#dff0e1;border:2px solid #3f9b54"></span>Start</span>
+      <span><span class="dot" style="background:#fbe2e0;border:2px solid #c0392b"></span>End</span>
+      <span><i class="lz"></i>Flow</span><span><i class="lzr"></i>Rework (No)</span><span>◇ Decision</span></div>`;}
+  else h+=`<div class="empty">Add actors and steps to generate the diagram.</div>`;
+  h+=`</div>`;
+  if(has){
+    h+=`<div class="panel"><h3>Swimlane activity mapping</h3><div class="sub">Step · Actor · Activity · Notes · SLA · Next</div>
+      <table><thead><tr><th>#</th><th>Actor</th><th>Activity</th><th>Notes</th><th>SLA</th><th>Next</th></tr></thead><tbody>`;
+    model.steps.forEach((s,i)=>{const next=s.kind==='decision'?`Yes → ${tName(s.yes,i)} · No → ${s.no?tName(s.no,i):'—'}`:(i<model.steps.length-1?esc(model.steps[i+1].label||'(step)'):'End');
+      const col=actorColor(s.owner);const sla=(s.sla&&s.sla.n)?`${s.sla.n} ${s.sla.unit}`:'—';
+      h+=`<tr><td>${i+1}</td><td><span class="badge" ${col?`style="border-color:${col};color:${col}"`:''}>${esc(actorName(s.owner)||'—')}</span></td><td>${esc(s.label||'(step)')} ${s.kind==='decision'?'<span class="tiny">◇</span>':''}</td><td>${esc(s.notes||'—')||'—'}</td><td>${sla}</td><td>${next}</td></tr>`;});
+    h+=`</tbody></table></div>`;
+    const decs=model.steps.filter(s=>s.kind==='decision');
+    if(decs.length){h+=`<div class="panel"><h3>Decision logic</h3><div class="sub">Decision · Outcome · Next · Owner</div><table><thead><tr><th>Decision</th><th>Outcome</th><th>Next</th><th>Owner</th></tr></thead><tbody>`;
+      decs.forEach(s=>{const i=model.steps.indexOf(s);h+=`<tr><td rowspan="2">${esc(s.label||'(decision)')}</td><td>Yes</td><td>${tName(s.yes,i)}</td><td rowspan="2">${esc(actorName(s.owner))}</td></tr><tr><td>No</td><td>${s.no?tName(s.no,i):'— (not set)'}</td></tr>`;});
+      h+=`</tbody></table></div>`;}
+    h+=`<div class="panel"><h3>Process review</h3><div class="sub">Auto-checks &amp; checklist</div><ul class="clean review">${review()}</ul></div>`;
+  }
+  out.innerHTML=h;attachDrag();
+}
+function tName(t,i){if(t==='__end__')return 'End';if(!t)return i<model.steps.length-1?esc(model.steps[i+1].label||'(next)'):'End';const s=model.steps.find(s=>s.id===t);return s?esc(s.label||'(step)'):'—';}
+function review(){const w=[];
+  model.actors.forEach(a=>{if(!model.steps.some(s=>s.owner===a.id))w.push(['warn',`Lane “${esc(a.name)}” has no activities.`]);});
+  const c={};model.steps.forEach(s=>c[s.owner]=(c[s.owner]||0)+1);
+  Object.entries(c).forEach(([id,n])=>{if(n>=4)w.push(['warn',`“${esc(actorName(id))}” owns ${n} steps — possible bottleneck.`]);});
+  const d=model.steps.filter(s=>s.kind==='decision');d.forEach(s=>{if(!s.no)w.push(['warn',`Decision “${esc(s.label||'?')}” has no No / rework path.`]);});
+  if(d.some(s=>s.no))w.push(['warn','Rework loops exist — set a max-iteration limit before escalation.']);
+  if(!model.trigger)w.push(['warn','No trigger defined.']);if(!model.endState)w.push(['warn','No end state defined.']);
+  if(!w.length)w.push(['ok','No structural issues detected.']);
+  const chk=['Approvals at the right authority level?','Single-source / segregation-of-duties risk?','Inputs, outputs and SLA defined per step?','Any manual handover that could be automated?','Audit trail captured at each control point?'];
+  return w.map(([k,t])=>`<li class="${k}">${t}</li>`).join('')+chk.map(t=>`<li class="chk">${t}</li>`).join('');
+}
+
+/* import/export */
+function exportJSON(){download((model.name||'flow-maker').replace(/\s+/g,'-').toLowerCase()+'.json',JSON.stringify(model,null,2),'application/json');}
+function importJSON(){const fi=fileInput;fi.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{model=normalize(JSON.parse(r.result));renderAll();}catch(_){alert('Invalid JSON.');}};r.readAsText(f);fi.value='';};fi.click();}
+function downloadSVG(){const s=diagramSVG(true);if(!s){alert('Add steps first.');return;}download((model.name||'swimlane').replace(/\s+/g,'-').toLowerCase()+'.svg',s,'image/svg+xml');}
+function downloadPNG(){const s=diagramSVG(true);if(!s){alert('Add steps first.');return;}
+  const m=s.match(/width="(\d+)" height="(\d+)"/);const W=+m[1],H=+m[2],sc=2;const img=new Image();
+  img.onload=()=>{const c=document.createElement('canvas');c.width=W*sc;c.height=H*sc;const x=c.getContext('2d');
+    x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.setTransform(sc,0,0,sc,0,0);x.drawImage(img,0,0);
+    c.toBlob(b=>{const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=(model.name||'swimlane').replace(/\s+/g,'-').toLowerCase()+'.png';a.click();URL.revokeObjectURL(u);},'image/png');};
+  img.onerror=()=>alert('PNG export failed in this browser; SVG still works.');
+  img.src='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(s)));}
+function download(name,text,type){const b=new Blob([text],{type});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;a.click();URL.revokeObjectURL(u);}
+function normalize(m){m=m||{};m.settings=m.settings||{};if(!m.settings.labelW)m.settings.labelW=54;if(!m.settings.orientation)m.settings.orientation='horizontal';m.pos=m.pos||{};m.conn=m.conn||{};
+  m.actors=(m.actors||[]).map(a=>({id:a.id||nid(),name:a.name||'',color:a.color||'',w:a.w||170,h:a.h||86}));
+  m.steps=(m.steps||[]).map(s=>({id:s.id||nid(),kind:s.kind==='decision'?'decision':'activity',label:s.label||'',owner:s.owner||(m.actors[0]&&m.actors[0].id)||'',notes:s.notes||'',yes:s.yes||'',no:s.no||'',w:s.w||null,h:s.h||null,sla:s.sla&&typeof s.sla==='object'?{n:s.sla.n||'',unit:s.sla.unit||'days'}:{n:'',unit:'days'}}));
+  return {name:m.name||'',trigger:m.trigger||'',endState:m.endState||'',settings:m.settings,actors:m.actors,steps:m.steps,pos:m.pos,conn:m.conn};}
+function newDoc(){if(model.steps.length&&!confirm('Clear everything?'))return;model=blank();renderAll();}
+function loadExample(){
+  const mk=(id,kind,label,owner,notes,no,sn,su)=>({id,kind,label,owner,notes:notes||'',yes:'',no:no||'',w:null,h:null,sla:{n:sn||'',unit:su||'days'}});
+  model={name:'RFQ to Purchase Order',trigger:'Approved Purchase Requisition received',endState:'PO issued to selected vendor and filed',
+    settings:{labelW:54,orientation:'horizontal'},pos:{},conn:{},
+    actors:[{id:'a1',name:'Requestor',color:'',w:170,h:84},{id:'a2',name:'Procurement',color:'',w:170,h:84},{id:'a3',name:'Vendor',color:'',w:170,h:84},{id:'a4',name:'Approver',color:'',w:170,h:84}],
+    steps:[
+      mk('s1','activity','Submit PR','a1','Scope, specs, budget code','',1,'days'),
+      mk('s2','activity','Review PR','a2','Completeness, budget, eligibility','',2,'days'),
+      mk('s3','decision','PR complete?','a2','','s1'),
+      mk('s4','activity','Issue RFQ','a2','Send to at least 3 vendors','',1,'days'),
+      mk('s5','activity','Submit quote','a3','Price, lead time, validity','',5,'days'),
+      mk('s6','activity','Evaluate quotes','a2','Price, technical, eligibility','',2,'days'),
+      mk('s7','decision','Quote OK?','a2','','s4'),
+      mk('s8','activity','Approve PO','a4','Within authority & budget','',2,'days'),
+      mk('s9','decision','Approved?','a4','','s6'),
+      mk('s10','activity','Issue PO','a2','Send & file PO','',1,'days')
+    ]};
+  renderAll();
+}
+function renderAll(){bindMeta();renderActors();renderSteps();renderOutput();}
+loadExample();
+</script>
+</body>
+</html>
